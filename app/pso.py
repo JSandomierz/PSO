@@ -19,13 +19,17 @@ class Point():
         return self.__str__()
 
 class PSO():
-    def __init__(self):
+    def __init__(self, momentum = 0.8, localSpeed = 0.5, globalSpeed = 0.5):
         self.points = []
         self.global_best = [0,0,-999]
-        self.c1 = 0.2
-        self.c2 = 0.6
+        self.momentum = momentum
+        self.c1 = localSpeed
+        self.c2 = globalSpeed
+        self.random = random.SystemRandom()
     def genPoints(self, numPoints, min_x, max_x, min_y, max_y):
-        self.points = [Point(random.uniform(min_x, max_x), random.uniform(min_y, max_y), 0) for i in range(0, numPoints)]
+        x = lambda: self.random.uniform(min_x, max_x)
+        y = lambda: self.random.uniform(min_y, max_y)
+        self.points = [Point(x(), y(), 0) for i in range(0, numPoints)]
         return self.points
     def adjustZ(self, X, Y, Z):
         for p in self.points:
@@ -37,21 +41,30 @@ class PSO():
         v[] = v[] + c1 * rand() * (pbest[] - present[]) + c2 * rand() * (gbest[] - present[]) (a)
 present[] = persent[] + v[] (b)
         """
-        global_best = -999
         for p in self.points:
-            if p.z > global_best:
-                global_best = p.z
+            if p.z > self.global_best[2]:
+                self.global_best[2] = p.z
+                self.global_best[1] = p.y
+                self.global_best[0] = p.x
+                print('new global best',str(self.global_best))
             if p.z > p.personal_best[2]:
                 p.personal_best[2] = p.z
+                p.personal_best[1] = p.y
+                p.personal_best[0] = p.x
+                #print('new personal best',str(p.personal_best),'for p:',p)
         for p in self.points:
-            rnd1 = random.uniform(0.1, 0.9)
+            rnd1 = self.random.uniform(0.2, 0.8)
             local_vel =\
             [ self.c1 * rnd1 * (p.personal_best[0] - p.x),
               self.c1 * rnd1 * (p.personal_best[1] - p.y)
             ]
-            rnd2 = random.uniform(0.1, 0.9)
+            rnd2 = self.random.uniform(0.2, 0.8)
             global_vel = \
             [ self.c2 * rnd2 * (self.global_best[0] - p.x),
               self.c2 * rnd2 * (self.global_best[1] - p.y)
             ]
-            p.v = p.v + local_vel + global_vel
+            for i in range(len(p.v)):
+                p.v[i] = self.momentum * p.v[i] + local_vel[i] + global_vel[i]
+            p.x += p.v[0]
+            p.y += p.v[1]
+        self.adjustZ(X,Y,Z)
